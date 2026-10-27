@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% set active = 'history' %}
+{% block title %}History{% endblock %}
+{% block body %}
+
+<div class="head"><div>
+  <h1>History</h1>
+  <p class="sub">Every stock movement, newest first. Who, what, when and why.</p>
+</div></div>
+
+<section class="card">
+  <table>
+    <thead><tr><th>When</th><th>Item</th><th>What</th><th>Change</th><th>Who</th><th>Note</th></tr></thead>
+    <tbody>
+    {% for r in rows %}
+      <tr>
+        <td class="muted nowrap">{{ r.created_at[:16] }}</td>
+        <td><a href="{{ url_for('item_detail', item_id=r.item_id) }}" class="name">{{ r.item }}</a></td>
+        <td><span class="pill kind-{{ r.kind }}">{{ r.label }}</span></td>
+        <td class="num {{ 'pos' if r.delta > 0 else 'neg' }}">
+          {{ '+' if r.delta > 0 }}{{ r.delta | round(1) }} <span class="unit">{{ r.unit }}</span></td>
+        <td class="muted">{{ r.username or '—' }}</td>
+        <td class="muted">{{ r.note }}</td>
+      </tr>
+    {% else %}
+      <tr><td colspan="6" class="muted">Nothing recorded yet.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</section>
+
+{% endblock %}

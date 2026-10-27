@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% set active = 'markets' %}
+{% block title %}Markets{% endblock %}
+{% block body %}
+
+<div class="head"><div>
+  <h1>Markets &amp; preferences</h1>
+  <p class="sub">Which stores to shop, and how to trade price against distance.</p>
+</div></div>
+
+<section class="card">
+  <h2>Preferences</h2>
+  <form method="post" action="{{ url_for('update_settings') }}" class="prefs">
+    <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+    <label class="slider">
+      <span>Price vs. distance</span>
+      <input type="range" name="price_weight" min="0" max="100" step="5"
+             data-output="price-weight-out"
+             value="{{ (settings.price_weight * 100) | round(0) | int }}">
+      <output id="price-weight-out">{{ (settings.price_weight * 100) | round(0) | int }}% price</output>
+      <small>All the way right chases the lowest price anywhere. Left keeps trips short.</small>
+    </label>
+    <label>Max distance (miles)
+      <input type="number" name="max_distance" step="0.5" min="0" max="500" value="{{ settings.max_distance }}">
+    </label>
+    <label>Driving cost per mile
+      <input type="number" name="cost_per_mile" step="0.05" min="0" max="20" value="{{ settings.cost_per_mile }}">
+    </label>
+    <label>Flag prices older than (days)
+      <input type="number" name="price_max_age_days" step="1" min="1" max="3650"
+             value="{{ settings.price_max_age_days | round(0) | int }}">
+    </label>
+    <button class="btn primary">Save</button>
+  </form>
+</section>
+
+<section class="card">
+  <h2>Markets</h2>
+  <table>
+    <thead><tr><th>Market</th><th>Distance</th><th>Prices cached</th><th>Last checked</th><th class="right"></th></tr></thead>
+    <tbody>
+    {% for m in markets %}
+      <tr class="{{ '' if m.enabled else 'row-off' }}">
+        <td><span class="name">{{ m.name }}</span>
+            {% if not m.enabled %}<span class="pill off">skipped</span>{% endif %}</td>
+        <td class="num">{{ m.distance }} mi</td>
+        <td class="num muted">{{ m.priced }}</td>
+        <td class="muted">{{ m.last_check or '—' }}</td>
+        <td class="right nowrap">
+          <form method="post" action="{{ url_for('toggle_market', market_id=m.id) }}" class="inline">
+            <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+            <button class="btn small">{{ 'Skip' if m.enabled else 'Use' }}</button>
+          </form>
+          <form method="post" action="{{ url_for('delete_market', market_id=m.id) }}" class="inline">
+            <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+            <button class="step del" title="Remove market">&times;</button>
+          </form>
+        </td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</section>
+
+<section class="card">
+  <h2>Add a market</h2>
+  <form method="post" action="{{ url_for('add_market') }}" class="grid-form">
+    <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+    <label>Name<input name="name" required placeholder="Grocery Outlet"></label>
+    <label>Distance (miles)<input name="distance" type="number" step="0.1" value="0"></label>
+    <button class="btn primary">Add</button>
+  </form>
+</section>
+
+{% endblock %}

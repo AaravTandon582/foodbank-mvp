@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+{% set active = 'inventory' %}
+{% block title %}Inventory{% endblock %}
+{% block body %}
+
+<div class="head">
+  <div>
+    <h1>Inventory</h1>
+    <p class="sub">{{ total }} items tracked &middot;
+      {% if low_count %}<strong class="warn">{{ low_count }} below par</strong>
+      {% else %}everything at par{% endif %}
+    </p>
+  </div>
+  <div class="head-actions">
+    {% if expired_count %}
+    <a class="btn warn-btn" href="{{ url_for('expiring_page') }}">{{ expired_count }} expired &rarr;</a>
+    {% elif soon_count %}
+    <a class="btn" href="{{ url_for('expiring_page') }}">{{ soon_count }} expiring soon &rarr;</a>
+    {% endif %}
+    {% if low_count %}
+    <a class="btn primary" href="{{ url_for('shopping_list') }}">Price out {{ low_count }} items &rarr;</a>
+    {% endif %}
+  </div>
+</div>
+
+{% for category, items in by_category.items() %}
+<section class="card">
+  <h2>{{ category }}</h2>
+  <table>
+    <thead>
+      <tr><th>Item</th><th>On hand</th><th>Par</th><th class="w40">Level</th><th class="right">Adjust</th></tr>
+    </thead>
+    <tbody>
+    {% for item in items %}
+      <tr class="{{ 'row-low' if item.short }}">
+        <td>
+          <a class="name" href="{{ url_for('item_detail', item_id=item.id) }}">{{ item.name }}</a>
+          <span class="unit">{{ item.unit }}</span>
+        </td>
+        <td class="num">{{ item.qty | round(0, 'floor') | int }}</td>
+        <td class="num muted">{{ item.par_level | round(0, 'floor') | int }}</td>
+        <td>
+          <div class="meter"><span class="{{ 'low' if item.short }}" style="width: {{ item.pct }}%"></span></div>
+        </td>
+        <td class="right nowrap">
+          <form method="post" action="{{ url_for('update_qty', item_id=item.id) }}" class="inline">
+            <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+            <button name="delta" value="-1" class="step">&minus;</button>
+            <button name="delta" value="1" class="step">+</button>
+            <button name="delta" value="10" class="step wide">+10</button>
+          </form>
+          <form method="post" action="{{ url_for('delete_item', item_id=item.id) }}" class="inline">
+            <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+            <button class="step del" title="Remove item">&times;</button>
+          </form>
+        </td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endfor %}
+
+<section class="card">
+  <h2>Add an item</h2>
+  <form method="post" action="{{ url_for('add_item') }}" class="grid-form">
+    <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+    <label>Name<input name="name" required placeholder="Canned Peaches"></label>
+    <label>Category<input name="category" placeholder="Canned"></label>
+    <label>Unit<input name="unit" placeholder="can"></label>
+    <label>On hand<input name="qty" type="number" step="1" value="0"></label>
+    <label>Par level<input name="par_level" type="number" step="1" value="0"></label>
+    <button class="btn primary">Add</button>
+  </form>
+</section>
+
+{% endblock %}

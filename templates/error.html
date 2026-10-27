@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block title %}{{ code }}{% endblock %}
+{% block body %}
+<section class="card empty">
+  <h1>{{ code }}</h1>
+  <p>{{ message }}</p>
+  <p><a class="btn" href="{{ url_for('inventory') }}">Back to inventory</a></p>
+</section>
+{% endblock %}

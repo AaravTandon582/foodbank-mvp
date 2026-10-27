@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+{% set active = 'inventory' %}
+{% block title %}{{ item.name }}{% endblock %}
+{% block body %}
+
+<div class="head">
+  <div>
+    <h1>{{ item.name }}</h1>
+    <p class="sub">{{ item.category }} &middot;
+      {{ item.qty | round(0) | int }} {{ item.unit }} on hand,
+      par {{ item.par_level | round(0) | int }}</p>
+  </div>
+  <a class="btn" href="{{ url_for('inventory') }}">&larr; All items</a>
+</div>
+
+<div class="two-up">
+  <section class="card">
+    <h2>Record intake</h2>
+    <p class="sub">A donation or a delivery arriving. Give it the date on the
+       packaging so rotation can use it.</p>
+    <form method="post" action="{{ url_for('item_intake', item_id=item.id) }}" class="grid-form">
+      <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+      <label>Quantity ({{ item.unit }})<input name="qty" type="number" step="any" min="0.01" required></label>
+      <label>Expires on<input name="expires_on" type="date"></label>
+      <label>Note<input name="note" placeholder="Church drive"></label>
+      <button class="btn primary">Add to stock</button>
+    </form>
+  </section>
+
+  <section class="card">
+    <h2>Record distribution</h2>
+    <p class="sub">Going out to households. Drawn from the soonest-expiring
+       lot first, automatically.</p>
+    <form method="post" action="{{ url_for('item_distribute', item_id=item.id) }}" class="grid-form">
+      <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+      <label>Quantity ({{ item.unit }})<input name="qty" type="number" step="any" min="0.01" required></label>
+      <label>Note<input name="note" placeholder="Tuesday pantry"></label>
+      <button class="btn primary">Take from stock</button>
+    </form>
+  </section>
+</div>
+
+<section class="card">
+  <h2>Lots on hand &mdash; rotation order</h2>
+  {% if lots %}
+  <table>
+    <thead><tr><th>#</th><th>Qty</th><th>Expires</th><th>Received</th><th>Note</th><th class="right"></th></tr></thead>
+    <tbody>
+    {% for lot in lots %}
+      <tr class="{{ 'row-low' if lot.days_left is not none and lot.days_left < 0 }}">
+        <td class="muted">{{ loop.index }}{{ ' &larr; next out' | safe if loop.first }}</td>
+        <td class="num">{{ lot.qty | round(1) }}</td>
+        <td class="num">{{ lot.expires_on or '—' }}</td>
+        <td class="num muted">{{ lot.received_on }}</td>
+        <td class="muted">{{ lot.note }}</td>
+        <td class="right">
+          <form method="post" action="{{ url_for('discard_lot', lot_id=lot.id) }}" class="inline">
+            <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+            <button class="btn small">Write off</button>
+          </form>
+        </td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p class="sub">No stock on hand.</p>
+  {% endif %}
+</section>
+
+<section class="card">
+  <h2>History</h2>
+  <table>
+    <thead><tr><th>When</th><th>What</th><th>Change</th><th>Who</th><th>Note</th></tr></thead>
+    <tbody>
+    {% for r in history %}
+      <tr>
+        <td class="muted nowrap">{{ r.created_at[:16] }}</td>
+        <td><span class="pill kind-{{ r.kind }}">{{ r.label }}</span></td>
+        <td class="num {{ 'pos' if r.delta > 0 else 'neg' }}">
+          {{ '+' if r.delta > 0 }}{{ r.delta | round(1) }}</td>
+        <td class="muted">{{ r.username or '—' }}</td>
+        <td class="muted">{{ r.note }}</td>
+      </tr>
+    {% else %}
+      <tr><td colspan="5" class="muted">Nothing recorded yet.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</section>
+
+{% endblock %}

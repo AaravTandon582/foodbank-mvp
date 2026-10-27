@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% set active = 'users' %}
+{% block title %}Accounts{% endblock %}
+{% block body %}
+
+<div class="head"><div>
+  <h1>Accounts</h1>
+  <p class="sub">Who can sign in. Volunteers count stock and record movement;
+     administrators also manage markets, preferences and accounts.</p>
+</div></div>
+
+<section class="card">
+  <h2>People</h2>
+  <table>
+    <thead><tr><th>Username</th><th>Role</th><th>Added</th><th>Last signed in</th><th class="right"></th></tr></thead>
+    <tbody>
+    {% for u in users %}
+      <tr class="{{ '' if u.active else 'row-off' }}">
+        <td><span class="name">{{ u.username }}</span>
+            {% if not u.active %}<span class="pill off">inactive</span>{% endif %}
+            {% if u.id == current_user().id %}<span class="pill">you</span>{% endif %}</td>
+        <td>{{ u.role }}</td>
+        <td class="muted">{{ u.created_at[:10] }}</td>
+        <td class="muted">{{ u.last_login[:16] if u.last_login else 'never' }}</td>
+        <td class="right nowrap">
+          <form method="post" action="{{ url_for('toggle_user', user_id=u.id) }}" class="inline">
+            <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+            <button class="btn small">{{ 'Deactivate' if u.active else 'Reactivate' }}</button>
+          </form>
+        </td>
+      </tr>
+      <tr>
+        <td colspan="5" class="subrow">
+          <form method="post" action="{{ url_for('reset_password', user_id=u.id) }}" class="inline-form">
+            <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+            <input name="password" type="password" placeholder="Set a new password"
+                   minlength="10" required autocomplete="new-password">
+            <button class="btn small">Reset password</button>
+          </form>
+        </td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</section>
+
+<section class="card">
+  <h2>Add someone</h2>
+  <form method="post" action="{{ url_for('add_user') }}" class="grid-form">
+    <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+    <label>Username<input name="username" required autocomplete="off"></label>
+    <label>Password<input name="password" type="password" minlength="10" required
+                          autocomplete="new-password" placeholder="10 characters or more"></label>
+    <label>Role
+      <select name="role">
+        <option value="volunteer">volunteer</option>
+        <option value="admin">admin</option>
+      </select>
+    </label>
+    <button class="btn primary">Create account</button>
+  </form>
+</section>
+
+{% endblock %}

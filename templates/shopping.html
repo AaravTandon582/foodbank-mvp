@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+{% set active = 'shopping' %}
+{% block title %}Shopping list{% endblock %}
+{% block body %}
+
+<div class="head">
+  <div>
+    <h1>Shopping list</h1>
+    <p class="sub">{{ plan.lines | length }} items to restock across
+      {{ plan.stops | length }} stop{{ '' if plan.stops | length == 1 else 's' }}</p>
+  </div>
+  <form method="post" action="{{ url_for('scan') }}">
+    <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+    <button class="btn primary">Rescan market prices</button>
+  </form>
+</div>
+
+{% if plan.lines %}
+<div class="tiles">
+  <div class="tile"><span>Groceries</span><strong>{{ plan.subtotal | money }}</strong></div>
+  <div class="tile"><span>Driving ({{ plan.stops | length }} stops)</span><strong>{{ plan.driving | money }}</strong></div>
+  <div class="tile accent"><span>Estimated total</span><strong>{{ plan.total | money }}</strong></div>
+  <div class="tile good"><span>Saved vs. priciest</span><strong>{{ plan.saved | money }}</strong></div>
+</div>
+
+{% if plan.stale_count %}
+<p class="note warn-box">{{ plan.stale_count }} of these prices are older than
+  {{ plan.settings.price_max_age_days | round(0) | int }} days. Rescan before
+  trusting the total.</p>
+{% endif %}
+
+{% for stop in plan.stops %}
+<section class="card">
+  <div class="stop">
+    <h2>{{ stop.market }}</h2>
+    <span class="pill">{{ stop.distance }} mi away</span>
+    <span class="subtotal">{{ stop.subtotal | money }}</span>
+  </div>
+  <table>
+    <thead>
+      <tr><th>Item</th><th>Buy</th><th>Unit price</th><th>Cost</th><th>Other markets</th></tr>
+    </thead>
+    <tbody>
+    {% for line in stop.lines %}
+      <tr>
+        <td><span class="name">{{ line.item }}</span>
+            {% if line.source == 'simulated' %}<span class="pill sim" title="Demo price, not a real quote">demo</span>
+            {% else %}<span class="pill real" title="From {{ line.source }} on {{ line.checked_at }}">{{ line.source }}</span>{% endif %}
+            {% if line.stale %}<span class="pill stale" title="Checked {{ line.age_days }} days ago">stale</span>{% endif %}</td>
+        <td class="num">{{ line.needed }} <span class="unit">{{ line.unit }}</span></td>
+        <td class="num">{{ line.price | money }}</td>
+        <td class="num">{{ line.cost | money }}</td>
+        <td class="compare">
+          {% for o in line.alternatives %}
+            <span class="alt">{{ o.market }} {{ o.price | money }}</span>
+          {% else %}
+            <span class="alt">only market in range</span>
+          {% endfor %}
+        </td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endfor %}
+
+<p class="note">Picks balance price against distance using your
+  <a href="{{ url_for('market_settings') }}">market preferences</a>
+  (currently {{ (plan.settings.price_weight * 100) | round(0) | int }}% weight on price,
+  markets within {{ plan.settings.max_distance | round(0) | int }} miles).</p>
+
+{% else %}
+<section class="card empty">
+  <h2>Nothing to buy</h2>
+  <p>Every tracked item is at or above its par level. Lower an item's stock on the
+     <a href="{{ url_for('inventory') }}">inventory page</a> to see this fill in.</p>
+</section>
+{% endif %}
+
+{% if plan.unpriced %}
+<section class="card">
+  <h2>No prices found</h2>
+  <p class="sub">These are low, but no enabled market within range has a price. Try
+     rescanning, widening your distance limit, or enabling more markets.</p>
+  <ul class="plain">
+    {% for item in plan.unpriced %}<li>{{ item.name }} &mdash; need {{ item.needed }} {{ item.unit }}</li>{% endfor %}
+  </ul>
+</section>
+{% endif %}
+
+{% endblock %}

@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% set active = 'expiring' %}
+{% block title %}Expiring{% endblock %}
+{% block body %}
+
+<div class="head"><div>
+  <h1>Expiring stock</h1>
+  <p class="sub">Dated lots within {{ summary.within_days }} days, soonest first.
+     This is the order to hand things out in.</p>
+</div></div>
+
+{% if summary.expired %}
+<p class="note warn-box"><strong>{{ summary.expired | length }} lot(s) are already past
+  their date</strong> ({{ summary.expired_units | round(0) | int }} units). These should
+  come off the shelf before anything else goes out.</p>
+{% endif %}
+
+{% if summary.lots %}
+<section class="card">
+  <table>
+    <thead><tr><th>Item</th><th>Qty</th><th>Expires</th><th>Days left</th><th>Note</th><th class="right"></th></tr></thead>
+    <tbody>
+    {% for lot in summary.lots %}
+      <tr class="{{ 'row-low' if lot.expired }}">
+        <td><a href="{{ url_for('item_detail', item_id=lot.item_id) }}" class="name">{{ lot.item }}</a>
+            <span class="unit">{{ lot.unit }}</span></td>
+        <td class="num">{{ lot.qty | round(0) | int }}</td>
+        <td class="num">{{ lot.expires_on }}</td>
+        <td class="num">
+          {% if lot.expired %}<span class="pill stale">{{ -lot.days_left }} days ago</span>
+          {% else %}{{ lot.days_left }}{% endif %}
+        </td>
+        <td class="muted">{{ lot.note }}</td>
+        <td class="right nowrap">
+          <form method="post" action="{{ url_for('discard_lot', lot_id=lot.id) }}" class="inline">
+            <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+            <button class="btn small">Write off</button>
+          </form>
+        </td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% else %}
+<section class="card empty">
+  <h2>Nothing expiring</h2>
+  <p>No dated lot goes off within {{ summary.within_days }} days.</p>
+</section>
+{% endif %}
+
+<p class="note">Showing {{ summary.within_days }} days.
+  {% for d in [7, 30, 90, 365] %}
+    <a href="{{ url_for('expiring_page', days=d) }}">{{ d }}</a>{{ ' · ' if not loop.last }}
+  {% endfor %}
+</p>
+
+{% endblock %}

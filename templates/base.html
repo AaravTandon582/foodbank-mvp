@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Pantry{% endblock %} &middot; Food Bank</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <header>
+    <div class="wrap bar">
+      <div class="brand">Pantry<span>OS</span></div>
+      {% if current_user() %}
+      <nav>
+        <a href="{{ url_for('inventory') }}" class="{{ 'on' if active == 'inventory' }}">Inventory</a>
+        <a href="{{ url_for('expiring_page') }}" class="{{ 'on' if active == 'expiring' }}">Expiring</a>
+        <a href="{{ url_for('shopping_list') }}" class="{{ 'on' if active == 'shopping' }}">Shopping list</a>
+        <a href="{{ url_for('market_settings') }}" class="{{ 'on' if active == 'markets' }}">Markets</a>
+        <a href="{{ url_for('history_page') }}" class="{{ 'on' if active == 'history' }}">History</a>
+        {% if current_user().role == ADMIN %}
+        <a href="{{ url_for('users_page') }}" class="{{ 'on' if active == 'users' }}">Accounts</a>
+        {% endif %}
+      </nav>
+      <form method="post" action="{{ url_for('do_logout') }}" class="whoami">
+        <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+        <span class="who">{{ current_user().username }}</span>
+        <button class="btn small">Sign out</button>
+      </form>
+      {% endif %}
+    </div>
+  </header>
+  <main class="wrap">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <div class="flashes">
+          {% for category, message in messages %}
+            <p class="flash {{ category }}">{{ message }}</p>
+          {% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
+    {% block body %}{% endblock %}
+  </main>
+  <script src="{{ url_for('static', filename='app.js') }}"></script>
+</body>
+</html>
